@@ -20,7 +20,7 @@ Open [http://127.0.0.1:4173](http://127.0.0.1:4173). Set `PORT` to change the po
 npm test
 ```
 
-The local server binds to `127.0.0.1`. Vercel can deploy this as a static site; `vercel.json` selects Frankfurt (`fra1`) for functions if any are added later. Static assets are served globally by Vercel. The canonical launch domain is `https://html2image.aminbihamta.com/`. The GA4 measurement ID is configured in `src/app.js`; run `npm run build` after changing it.
+The local server binds to `127.0.0.1`. Vercel deploys the generated `public` directory as a static site; HTML rendering runs in each visitor's browser. Static assets are served globally by Vercel. The canonical launch domain is `https://html2image.aminbihamta.com/`. The GA4 measurement ID is configured in `src/app.js`; run `npm run build` after changing it.
 
 Analytics is optional and loads only after explicit opt-in. The privacy page is a launch draft and should be updated with final operator and hosting details. The app links to [aminbihamta.com](https://aminbihamta.com/).
 
