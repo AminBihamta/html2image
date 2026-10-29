@@ -4,7 +4,7 @@
   "private": false,
   "license": "MIT",
   "scripts": {
-    "build": "esbuild src/app.js --bundle --minify --legal-comments=inline --outfile=public/app.js",
+    "build": "esbuild src/app.js --bundle --minify --legal-comments=inline --outfile=public/app.js && cp index.html privacy.html public/",
     "prestart": "npm run build",
     "start": "node server.js",
     "pretest": "npm run build",
