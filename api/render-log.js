@@ -2,6 +2,7 @@ const stages = new Set(['complete', 'validate', 'load-preview', 'capture']);
 const errorCodes = new Set(['timeout', 'capture', 'other']);
 
 module.exports = (request, response) => {
+  console.info('[render-debug] function-hit', request.method);
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed.' });
   const event = request.body;
   if (!event || typeof event !== 'object' || JSON.stringify(event).length > 2048 || !stages.has(event.stage)) {
