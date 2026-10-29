@@ -109,8 +109,17 @@ button.addEventListener('click', async () => {
     });
     renderStage = 'capture';
     logRender({ stage: 'capture', width, durationMs: Math.round(performance.now() - startedAt) });
-    const blob = await htmlToImage.toBlob(frame.contentDocument.documentElement, { type: 'image/jpeg', quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true });
-    if (!blob) throw new Error('Could not create the image. Try simpler HTML or fewer external resources.');
+    let captureTimeout;
+    let dataUrl;
+    try {
+      dataUrl = await Promise.race([
+        htmlToImage.toJpeg(frame.contentDocument.documentElement, { quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true }),
+        new Promise((_, reject) => { captureTimeout = setTimeout(() => reject(new Error('Image capture timed out. Try simpler HTML or fewer external resources.')), 30000); })
+      ]);
+    } finally {
+      clearTimeout(captureTimeout);
+    }
+    const blob = new Blob([Uint8Array.from(atob(dataUrl.split(',')[1]), char => char.charCodeAt(0))], { type: 'image/jpeg' });
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = URL.createObjectURL(blob);
     image.src = imageUrl;
@@ -123,7 +132,7 @@ button.addEventListener('click', async () => {
   } catch (error) {
     status.textContent = error.message;
     status.classList.add('error');
-    logRender({ stage: renderStage, errorCode: error.message.includes('too long') ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: renderStage, errorCode: /timed out|too long/i.test(error.message) ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
   } finally {
     renderStage = 'idle';
     button.disabled = false;
