@@ -9,10 +9,11 @@ module.exports = (request, response) => {
     return response.status(400).json({ error: 'Invalid render diagnostic.' });
   }
   const width = Number.isInteger(event.width) && event.width >= 1 && event.width <= 4096 ? event.width : undefined;
+  const height = Number.isInteger(event.height) && event.height >= 1 && event.height <= 4096 ? event.height : undefined;
   const durationMs = Number.isInteger(event.durationMs) && event.durationMs >= 0 && event.durationMs <= 120000 ? event.durationMs : undefined;
   const errorCode = errorCodes.has(event.errorCode) ? event.errorCode : undefined;
   const outputBytes = Number.isInteger(event.outputBytes) && event.outputBytes >= 0 ? event.outputBytes : undefined;
-  const entry = { stage: event.stage, ...(width && { width }), ...(durationMs !== undefined && { durationMs }), ...(errorCode && { errorCode }), ...(outputBytes !== undefined && { outputBytes }) };
+  const entry = { stage: event.stage, ...(width && { width }), ...(height && { height }), ...(durationMs !== undefined && { durationMs }), ...(errorCode && { errorCode }), ...(outputBytes !== undefined && { outputBytes }) };
   console[errorCode ? 'error' : 'info']('[render-debug]', JSON.stringify(entry));
   return response.status(204).end();
 };
