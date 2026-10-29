@@ -96,11 +96,13 @@ button.addEventListener('click', async () => {
   renderStage = 'validate';
   try {
     const width = Number(document.querySelector('#width').value);
-    if (!Number.isInteger(width) || width < 1 || width > 4096) throw new Error('Width must be between 1 and 4096 pixels.');
-    logRender({ stage: 'validate', width, durationMs: 0 });
+    const height = Number(document.querySelector('#height').value);
+    if (!Number.isInteger(width) || width < 1 || width > 4096 || !Number.isInteger(height) || height < 1 || height > 4096) throw new Error('Width and height must be between 1 and 4096 pixels.');
+    logRender({ stage: 'validate', width, height, durationMs: 0 });
     frame.width = width;
+    frame.height = height;
     renderStage = 'load-preview';
-    logRender({ stage: 'load-preview', width, durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: 'load-preview', width, height, durationMs: Math.round(performance.now() - startedAt) });
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Preview took too long to load.')), 15000);
       frame.onload = () => { clearTimeout(timeout); resolve(); };
@@ -108,7 +110,7 @@ button.addEventListener('click', async () => {
       frame.srcdoc = editor.state.doc.toString();
     });
     renderStage = 'capture';
-    logRender({ stage: 'capture', width, durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: 'capture', width, height, durationMs: Math.round(performance.now() - startedAt) });
     let captureTimeout;
     let dataUrl;
     try {
@@ -128,11 +130,11 @@ button.addEventListener('click', async () => {
     download.href = imageUrl;
     download.hidden = false;
     status.textContent = `${(blob.size / 1024).toFixed(1)} KB · JPEG · rendered in your browser`;
-    logRender({ stage: 'complete', width, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
+    logRender({ stage: 'complete', width, height, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
   } catch (error) {
     status.textContent = error.message;
     status.classList.add('error');
-    logRender({ stage: renderStage, errorCode: /timed out|too long/i.test(error.message) ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: renderStage, errorCode: /timed out|too long/i.test(error.message) ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), height: Number(document.querySelector('#height').value), durationMs: Math.round(performance.now() - startedAt) });
   } finally {
     renderStage = 'idle';
     button.disabled = false;
