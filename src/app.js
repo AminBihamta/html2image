@@ -37,7 +37,7 @@ const download = document.querySelector('#download');
 const frame = document.querySelector('#render-frame');
 let imageUrl;
 
-const GA_MEASUREMENT_ID = '';
+const GA_MEASUREMENT_ID = 'G-RZM8PV32MF';
 const consentKey = 'html-to-jpg-analytics-consent';
 
 function loadAnalytics() {
