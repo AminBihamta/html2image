@@ -36,6 +36,7 @@ const image = document.querySelector('#image');
 const download = document.querySelector('#download');
 const frame = document.querySelector('#render-frame');
 let imageUrl;
+let renderStage = 'idle';
 
 const GA_MEASUREMENT_ID = 'G-RZM8PV32MF';
 const consentKey = 'html-to-jpg-analytics-consent';
@@ -66,6 +67,16 @@ document.querySelector('#consent-decline').addEventListener('click', () => {
   consent.hidden = true;
 });
 
+function logRender(event) {
+  console[event.errorCode ? 'error' : 'info']('[render-debug]', event);
+  return fetch('/api/render-log', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(event),
+    keepalive: true
+  }).catch(() => {});
+}
+
 wrapButton.addEventListener('click', () => {
   wrapping = !wrapping;
   editor.dispatch({ effects: lineWrap.reconfigure(wrapping ? EditorView.lineWrapping : []) });
@@ -74,19 +85,23 @@ wrapButton.addEventListener('click', () => {
 });
 
 button.addEventListener('click', async () => {
+  const startedAt = performance.now();
   button.disabled = true;
   status.classList.remove('error');
   status.textContent = 'Rendering…';
+  renderStage = 'validate';
   try {
     const width = Number(document.querySelector('#width').value);
     if (!Number.isInteger(width) || width < 1 || width > 4096) throw new Error('Width must be between 1 and 4096 pixels.');
     frame.width = width;
+    renderStage = 'load-preview';
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Preview took too long to load.')), 15000);
       frame.onload = () => { clearTimeout(timeout); resolve(); };
       frame.onerror = () => { clearTimeout(timeout); reject(new Error('Could not load the preview.')); };
       frame.srcdoc = editor.state.doc.toString();
     });
+    renderStage = 'capture';
     const blob = await htmlToImage.toBlob(frame.contentDocument.documentElement, { type: 'image/jpeg', quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true });
     if (!blob) throw new Error('Could not create the image. Try simpler HTML or fewer external resources.');
     if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -97,10 +112,13 @@ button.addEventListener('click', async () => {
     download.href = imageUrl;
     download.hidden = false;
     status.textContent = `${(blob.size / 1024).toFixed(1)} KB · JPEG · rendered in your browser`;
+    await logRender({ stage: 'complete', width, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
   } catch (error) {
     status.textContent = error.message;
     status.classList.add('error');
+    await logRender({ stage: renderStage, errorCode: error.message.includes('too long') ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
   } finally {
+    renderStage = 'idle';
     button.disabled = false;
   }
 });
