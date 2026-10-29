@@ -87,8 +87,8 @@ button.addEventListener('click', async () => {
       frame.onerror = () => { clearTimeout(timeout); reject(new Error('Could not load the preview.')); };
       frame.srcdoc = editor.state.doc.toString();
     });
-    await frame.contentDocument.fonts.ready;
-    const blob = await htmlToImage.toJpeg(frame.contentDocument.documentElement, { quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff' }).then(async dataUrl => await (await fetch(dataUrl)).blob());
+    const blob = await htmlToImage.toBlob(frame.contentDocument.documentElement, { type: 'image/jpeg', quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true });
+    if (!blob) throw new Error('Could not create the image. Try simpler HTML or fewer external resources.');
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = URL.createObjectURL(blob);
     image.src = imageUrl;
