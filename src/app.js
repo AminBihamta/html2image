@@ -113,7 +113,7 @@ button.addEventListener('click', async () => {
     let dataUrl;
     try {
       dataUrl = await Promise.race([
-        htmlToImage.toJpeg(frame.contentDocument.documentElement, { quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true }),
+        htmlToImage.toJpeg(frame.contentDocument.documentElement, { quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true, imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', onImageErrorHandler: () => {} }),
         new Promise((_, reject) => { captureTimeout = setTimeout(() => reject(new Error('Image capture timed out. Try simpler HTML or fewer external resources.')), 30000); })
       ]);
     } finally {
