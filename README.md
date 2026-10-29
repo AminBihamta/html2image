@@ -24,6 +24,8 @@ The local server binds to `127.0.0.1`. Vercel deploys the generated `public` dir
 
 Analytics is optional and loads only after explicit opt-in. The privacy page is a launch draft and should be updated with final operator and hosting details. The app links to [aminbihamta.com](https://aminbihamta.com/).
 
+When deployed, render diagnostics (stage, width, duration, and error category only; never the HTML) are sent to `/api/render-log`. View them in Vercel's project **Logs** under Functions, filtered for `[render-debug]`.
+
 ## License
 
 The app is released under the MIT license. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md) for dependency terms.
