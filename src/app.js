@@ -97,10 +97,10 @@ button.addEventListener('click', async () => {
   try {
     const width = Number(document.querySelector('#width').value);
     if (!Number.isInteger(width) || width < 1 || width > 4096) throw new Error('Width must be between 1 and 4096 pixels.');
-    await logRender({ stage: 'validate', width, durationMs: 0 });
+    logRender({ stage: 'validate', width, durationMs: 0 });
     frame.width = width;
     renderStage = 'load-preview';
-    await logRender({ stage: 'load-preview', width, durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: 'load-preview', width, durationMs: Math.round(performance.now() - startedAt) });
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Preview took too long to load.')), 15000);
       frame.onload = () => { clearTimeout(timeout); resolve(); };
@@ -108,7 +108,7 @@ button.addEventListener('click', async () => {
       frame.srcdoc = editor.state.doc.toString();
     });
     renderStage = 'capture';
-    await logRender({ stage: 'capture', width, durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: 'capture', width, durationMs: Math.round(performance.now() - startedAt) });
     const blob = await htmlToImage.toBlob(frame.contentDocument.documentElement, { type: 'image/jpeg', quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true });
     if (!blob) throw new Error('Could not create the image. Try simpler HTML or fewer external resources.');
     if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -119,11 +119,11 @@ button.addEventListener('click', async () => {
     download.href = imageUrl;
     download.hidden = false;
     status.textContent = `${(blob.size / 1024).toFixed(1)} KB · JPEG · rendered in your browser`;
-    await logRender({ stage: 'complete', width, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
+    logRender({ stage: 'complete', width, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
   } catch (error) {
     status.textContent = error.message;
     status.classList.add('error');
-    await logRender({ stage: renderStage, errorCode: error.message.includes('too long') ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
+    logRender({ stage: renderStage, errorCode: error.message.includes('too long') ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), durationMs: Math.round(performance.now() - startedAt) });
   } finally {
     renderStage = 'idle';
     button.disabled = false;
