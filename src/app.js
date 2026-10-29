@@ -74,7 +74,11 @@ function logRender(event) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(event),
     keepalive: true
-  }).catch(() => {});
+  }).then(response => {
+    console.info('[render-debug-endpoint]', response.status);
+  }).catch(() => {
+    console.error('[render-debug-endpoint] unavailable');
+  });
 }
 
 wrapButton.addEventListener('click', () => {
@@ -93,8 +97,10 @@ button.addEventListener('click', async () => {
   try {
     const width = Number(document.querySelector('#width').value);
     if (!Number.isInteger(width) || width < 1 || width > 4096) throw new Error('Width must be between 1 and 4096 pixels.');
+    await logRender({ stage: 'validate', width, durationMs: 0 });
     frame.width = width;
     renderStage = 'load-preview';
+    await logRender({ stage: 'load-preview', width, durationMs: Math.round(performance.now() - startedAt) });
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => reject(new Error('Preview took too long to load.')), 15000);
       frame.onload = () => { clearTimeout(timeout); resolve(); };
@@ -102,6 +108,7 @@ button.addEventListener('click', async () => {
       frame.srcdoc = editor.state.doc.toString();
     });
     renderStage = 'capture';
+    await logRender({ stage: 'capture', width, durationMs: Math.round(performance.now() - startedAt) });
     const blob = await htmlToImage.toBlob(frame.contentDocument.documentElement, { type: 'image/jpeg', quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true });
     if (!blob) throw new Error('Could not create the image. Try simpler HTML or fewer external resources.');
     if (imageUrl) URL.revokeObjectURL(imageUrl);
