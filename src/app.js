@@ -113,6 +113,23 @@ button.addEventListener('click', async () => {
     logRender({ stage: 'capture', width, height, durationMs: Math.round(performance.now() - startedAt) });
     let captureTimeout;
     let dataUrl;
+    const blockedImageHosts = new Set();
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const requestUrl = args[0] instanceof Request ? args[0].url : args[0];
+      let hostname;
+      try {
+        hostname = new URL(requestUrl, location.href).hostname;
+      } catch {}
+      try {
+        const response = await originalFetch.apply(window, args);
+        if (!response.ok && hostname) blockedImageHosts.add(hostname);
+        return response;
+      } catch (error) {
+        if (hostname) blockedImageHosts.add(hostname);
+        throw error;
+      }
+    };
     try {
       dataUrl = await Promise.race([
         htmlToImage.toJpeg(frame.contentDocument.documentElement, { quality: 0.92, pixelRatio: 1, backgroundColor: '#ffffff', skipFonts: true, imagePlaceholder: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=', onImageErrorHandler: () => {} }),
@@ -120,6 +137,7 @@ button.addEventListener('click', async () => {
       ]);
     } finally {
       clearTimeout(captureTimeout);
+      window.fetch = originalFetch;
     }
     const blob = new Blob([Uint8Array.from(atob(dataUrl.split(',')[1]), char => char.charCodeAt(0))], { type: 'image/jpeg' });
     if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -129,12 +147,21 @@ button.addEventListener('click', async () => {
     document.querySelector('#empty').hidden = true;
     download.href = imageUrl;
     download.hidden = false;
-    status.textContent = `${(blob.size / 1024).toFixed(1)} KB · JPEG · rendered in your browser`;
-    logRender({ stage: 'complete', width, height, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size });
+    const blockedHosts = [...blockedImageHosts];
+    status.textContent = blockedHosts.length
+      ? `${(blob.size / 1024).toFixed(1)} KB · JPG · ${blockedHosts.length} remote image host${blockedHosts.length === 1 ? '' : 's'} could not be embedded: ${blockedHosts.join(', ')}. Use data URLs or a host that allows cross-origin access.`
+      : `${(blob.size / 1024).toFixed(1)} KB · JPEG · rendered in your browser`;
+    logRender({ stage: 'complete', width, height, durationMs: Math.round(performance.now() - startedAt), outputBytes: blob.size, blockedImageCount: blockedHosts.length });
   } catch (error) {
     status.textContent = error.message;
     status.classList.add('error');
-    logRender({ stage: renderStage, errorCode: /timed out|too long/i.test(error.message) ? 'timeout' : renderStage === 'capture' ? 'capture' : 'other', width: Number(document.querySelector('#width').value), height: Number(document.querySelector('#height').value), durationMs: Math.round(performance.now() - startedAt) });
+    const errorMessage = String(error?.message || '');
+    const errorCode = /timed out|too long/i.test(errorMessage) ? 'timeout'
+      : /cors|failed to fetch|networkerror/i.test(errorMessage) ? 'resource-fetch'
+        : /taint|securityerror|insecure/i.test(errorMessage) ? 'canvas-security'
+          : /decode|invalid image|image.*load/i.test(errorMessage) ? 'image-decode'
+            : renderStage === 'capture' ? 'capture' : 'other';
+    logRender({ stage: renderStage, errorCode, width: Number(document.querySelector('#width').value), height: Number(document.querySelector('#height').value), durationMs: Math.round(performance.now() - startedAt) });
   } finally {
     renderStage = 'idle';
     button.disabled = false;

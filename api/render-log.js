@@ -1,5 +1,5 @@
 const stages = new Set(['complete', 'validate', 'load-preview', 'capture']);
-const errorCodes = new Set(['timeout', 'capture', 'other']);
+const errorCodes = new Set(['timeout', 'resource-fetch', 'canvas-security', 'image-decode', 'capture', 'other']);
 
 module.exports = (request, response) => {
   console.info('[render-debug] function-hit', request.method);
@@ -13,7 +13,8 @@ module.exports = (request, response) => {
   const durationMs = Number.isInteger(event.durationMs) && event.durationMs >= 0 && event.durationMs <= 120000 ? event.durationMs : undefined;
   const errorCode = errorCodes.has(event.errorCode) ? event.errorCode : undefined;
   const outputBytes = Number.isInteger(event.outputBytes) && event.outputBytes >= 0 ? event.outputBytes : undefined;
-  const entry = { stage: event.stage, ...(width && { width }), ...(height && { height }), ...(durationMs !== undefined && { durationMs }), ...(errorCode && { errorCode }), ...(outputBytes !== undefined && { outputBytes }) };
+  const blockedImageCount = Number.isInteger(event.blockedImageCount) && event.blockedImageCount >= 0 && event.blockedImageCount <= 1000 ? event.blockedImageCount : undefined;
+  const entry = { stage: event.stage, ...(width && { width }), ...(height && { height }), ...(durationMs !== undefined && { durationMs }), ...(errorCode && { errorCode }), ...(outputBytes !== undefined && { outputBytes }), ...(blockedImageCount !== undefined && { blockedImageCount }) };
   console[errorCode ? 'error' : 'info']('[render-debug]', JSON.stringify(entry));
   return response.status(204).end();
 };
